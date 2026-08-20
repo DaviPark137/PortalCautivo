@@ -64,7 +64,8 @@ function App() {
     e.preventDefault();
 
     try {
-      const response = await axios.post('http://localhost:8000/api/registro/', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const response = await axios.post(`${apiUrl}/api/registro/`, {
         nombre: formData.nombre,
         email: formData.email,
         motivo: formData.motivo,
