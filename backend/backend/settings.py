@@ -15,11 +15,7 @@ import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://localhost:5174",
-    "http://192.168.70.10:5173",
-]
+CORS_ALLOW_ALL_ORIGINS = True
 
 SECRET_KEY = 'django-insecure-bsi(+s6t%i-(%5zb7+d#$hwm+5=-8x9l$oo%!98p-zrkk&6f+a'
 
