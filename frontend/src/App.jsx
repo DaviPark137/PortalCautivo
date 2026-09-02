@@ -127,14 +127,16 @@ function App() {
     >
       <div className="portal-card">
         
-        <div className="header-section">
-          <img src={logoImg} alt="Plataforma Park Logo" className="logo" />
-          
+        <div className="top-bar">
           <div className="lang-toggle" onClick={() => setLang(lang === 'ES' ? 'EN' : 'ES')}>
             <span className={lang === 'EN' ? 'active' : ''}>EN</span>
             <span className="separator"> | </span>
             <span className={lang === 'ES' ? 'active' : ''}>ES</span>
           </div>
+        </div>
+
+        <div className="logo-container">
+          <img src={logoImg} alt="Plataforma Park Logo" className="logo" />
         </div>
 
         <div className="titles">

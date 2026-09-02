@@ -55,36 +55,41 @@ body {
   z-index: 2; 
 }
 
-.header-section {
+.top-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+
+.logo-container {
   display: flex;
   justify-content: center;
   align-items: center;
   margin-bottom: 25px;
-  position: relative;
-  min-height: 40px; 
 }
 
 .logo {
-  height: 38px;
-  max-width: 60%; 
+  height: 44px;
+  max-width: 80%; 
   object-fit: contain;
 }
 
 .lang-toggle {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
   background-color: #f3f4f6;
   border-radius: 20px;
-  padding: 6px 10px;
+  padding: 5px 12px;
   font-size: 11px;
   font-weight: 600;
   color: #6b7280;
   cursor: pointer;
   user-select: none;
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  transition: background-color 0.2s;
+}
+
+.lang-toggle:hover {
+  background-color: #e5e7eb;
 }
 
 .lang-toggle .separator {
