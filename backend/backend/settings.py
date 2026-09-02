@@ -23,6 +23,12 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://wifi.plataformapark.com',
+]
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
