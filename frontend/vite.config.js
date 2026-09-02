@@ -9,5 +9,6 @@ export default defineConfig({
       usePolling: true,
     },
     host: true,
+    allowedHosts: ['wifi.plataformapark.com'],
   },
 })
