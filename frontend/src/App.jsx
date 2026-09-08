@@ -70,6 +70,8 @@ function App() {
   const [clientMac, setClientMac] = useState('');
   const [baseGrantUrl, setBaseGrantUrl] = useState('');
   const [userContinueUrl, setUserContinueUrl] = useState('');
+  const [isUniFi, setIsUniFi] = useState(false);
+  const [controllerIp, setControllerIp] = useState('192.168.24.84');
   
   const [isTermsOpen, setIsTermsOpen] = useState(false);
 
@@ -79,9 +81,24 @@ function App() {
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    setClientMac(urlParams.get('client_mac') || '');
+    // Cisco Meraki usa 'client_mac', Ubiquiti UniFi usa 'id'
+    const mac = urlParams.get('client_mac') || urlParams.get('id') || '';
+    setClientMac(mac);
+
+    // Cisco Meraki usa 'base_grant_url'
     setBaseGrantUrl(urlParams.get('base_grant_url') || '');
-    setUserContinueUrl(urlParams.get('user_continue_url') || 'https://google.com');
+
+    // Meraki usa 'user_continue_url', UniFi usa 'url'
+    const continueUrl = urlParams.get('user_continue_url') || urlParams.get('url') || 'https://google.com';
+    setUserContinueUrl(continueUrl);
+
+    // Detectar si la petición viene de una antena UniFi
+    if (urlParams.get('id') && !urlParams.get('base_grant_url')) {
+      setIsUniFi(true);
+      if (urlParams.get('controller')) {
+        setControllerIp(urlParams.get('controller'));
+      }
+    }
   }, []);
 
   const handleInputChange = (e) => {
@@ -106,7 +123,28 @@ function App() {
 
       if (response.status === 201) {
         if (baseGrantUrl) {
+          // Autorización para Cisco Meraki
           window.location.href = `${baseGrantUrl}?continue_url=${encodeURIComponent(userContinueUrl)}`;
+        } else if (isUniFi && clientMac) {
+          // Autorización para Ubiquiti UniFi (envío de POST al controller)
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = `http://${controllerIp}:8880/guest/s/default/login`;
+
+          const idInput = document.createElement('input');
+          idInput.type = 'hidden';
+          idInput.name = 'id';
+          idInput.value = clientMac;
+          form.appendChild(idInput);
+
+          const urlInput = document.createElement('input');
+          urlInput.type = 'hidden';
+          urlInput.name = 'url';
+          urlInput.value = userContinueUrl;
+          form.appendChild(urlInput);
+
+          document.body.appendChild(form);
+          form.submit();
         } else {
           console.log("Guardado en PostgreSQL:", response.data);
           alert("¡Registro guardado en BD! Simulación de internet liberado (Modo Local).");
