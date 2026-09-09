@@ -3,7 +3,7 @@ import json
 import ssl
 import urllib.request
 from http.cookiejar import CookieJar
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Visitante
@@ -205,6 +205,8 @@ def unifi_authorize_guest(mac_address, ap_mac=None):
     return False
 
 @api_view(['POST'])
+@authentication_classes([])
+@permission_classes([])
 def registrar_visitante(request):
     """
     Recibe los datos de React y crea un nuevo visitante en la base de datos
