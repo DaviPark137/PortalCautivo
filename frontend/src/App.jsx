@@ -72,6 +72,7 @@ function App() {
   const [userContinueUrl, setUserContinueUrl] = useState('');
   const [isUniFi, setIsUniFi] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   
   const [isTermsOpen, setIsTermsOpen] = useState(false);
 
@@ -125,10 +126,10 @@ function App() {
           // Autorización para Cisco Meraki
           window.location.href = `${baseGrantUrl}?continue_url=${encodeURIComponent(userContinueUrl)}`;
         } else {
-          // Autorización para Ubiquiti UniFi / Servidor Cloud:
-          // El backend ya liberó la MAC directamente con el controlador local en Lightsail
-          alert(lang === 'ES' ? "¡Conexión exitosa! Ya tienes acceso a internet." : "Connection successful! You now have internet access.");
-          window.location.href = userContinueUrl || 'https://google.com';
+          // Autorización para Ubiquiti UniFi: la orden ya la mandó el backend
+          // Sin alertas feas ni redirecciones externas molestas
+          setIsSuccess(true);
+          setLoading(false);
         }
       }
     } catch (error) {
@@ -157,72 +158,86 @@ function App() {
           </div>
         </div>
 
-        <div className="titles">
-          <h1>{t.title}</h1>
-          <p>{t.subtitle}</p>
-        </div>
-
-        <form onSubmit={handleConnect}>
-          <div className="form-group">
-            <label>{t.nameLabel}</label>
-            <input type="text" name="nombre" className="form-control" placeholder={t.namePlaceholder} value={formData.nombre} onChange={handleInputChange} required />
+        {isSuccess ? (
+          <div style={{ textAlign: 'center', padding: '25px 10px' }}>
+            <div style={{ fontSize: '48px', color: '#10b981', marginBottom: '12px' }}>✓</div>
+            <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1f2937', marginBottom: '8px' }}>
+              {lang === 'ES' ? '¡Conectado!' : 'Connected!'}
+            </h2>
+            <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, lineHeight: '1.5' }}>
+              {lang === 'ES' ? 'Ya tienes acceso a internet. Puedes cerrar esta ventana.' : 'You now have internet access. You may close this window.'}
+            </p>
           </div>
-
-          <div className="form-group">
-            <label>{t.emailLabel}</label>
-            <input type="email" name="email" className="form-control" placeholder={t.emailPlaceholder} value={formData.email} onChange={handleInputChange} required />
-          </div>
-
-          <div className="form-group">
-            <label>{t.reasonLabel}</label>
-            <select name="motivo" className="form-control" value={formData.motivo} onChange={handleInputChange} required>
-              <option value="" disabled>{t.reasonPlaceholder}</option>
-              <option value="visita">Visita General / Visitor</option>
-              <option value="proveedor">Proveedor / Supplier</option>
-              <option value="entrevista">Entrevista / Interview</option>
-              <option value="otro">Otro / Other</option>
-            </select>
-          </div>
-
-          {formData.motivo === 'otro' && (
-            <div className="form-group">
-              <label>{t.otherReasonLabel}</label>
-              <input type="text" name="motivoOtro" className="form-control" placeholder={t.otherReasonPlaceholder} value={formData.motivoOtro} onChange={handleInputChange} required />
+        ) : (
+          <>
+            <div className="titles">
+              <h1>{t.title}</h1>
+              <p>{t.subtitle}</p>
             </div>
-          )}
 
-          <div className="form-group">
-            <label>{t.companyLabel}</label>
-            <select name="empresa" className="form-control" value={formData.empresa} onChange={handleInputChange} required>
-              <option value="" disabled>{t.companyPlaceholder}</option>
-              <option value="PlataformaPark">PlataformaPark</option>
-              <option value="MercadoLibre">MercadoLibre</option>
-              <option value="Italika">Italika</option>
-              <option value="RealTruck">RealTruck</option>
-              <option value="Foxxcon">Foxxcon</option>
-              <option value="otro">Otro / Other</option>
-            </select>
-          </div>
+            <form onSubmit={handleConnect}>
+              <div className="form-group">
+                <label>{t.nameLabel}</label>
+                <input type="text" name="nombre" className="form-control" placeholder={t.namePlaceholder} value={formData.nombre} onChange={handleInputChange} required />
+              </div>
 
-          {formData.empresa === 'otro' && (
-            <div className="form-group">
-              <label>{t.otherCompanyLabel}</label>
-              <input type="text" name="empresaOtro" className="form-control" placeholder={t.otherCompanyPlaceholder} value={formData.empresaOtro} onChange={handleInputChange} required />
+              <div className="form-group">
+                <label>{t.emailLabel}</label>
+                <input type="email" name="email" className="form-control" placeholder={t.emailPlaceholder} value={formData.email} onChange={handleInputChange} required />
+              </div>
+
+              <div className="form-group">
+                <label>{t.reasonLabel}</label>
+                <select name="motivo" className="form-control" value={formData.motivo} onChange={handleInputChange} required>
+                  <option value="" disabled>{t.reasonPlaceholder}</option>
+                  <option value="visita">Visita General / Visitor</option>
+                  <option value="proveedor">Proveedor / Supplier</option>
+                  <option value="entrevista">Entrevista / Interview</option>
+                  <option value="otro">Otro / Other</option>
+                </select>
+              </div>
+
+              {formData.motivo === 'otro' && (
+                <div className="form-group">
+                  <label>{t.otherReasonLabel}</label>
+                  <input type="text" name="motivoOtro" className="form-control" placeholder={t.otherReasonPlaceholder} value={formData.motivoOtro} onChange={handleInputChange} required />
+                </div>
+              )}
+
+              <div className="form-group">
+                <label>{t.companyLabel}</label>
+                <select name="empresa" className="form-control" value={formData.empresa} onChange={handleInputChange} required>
+                  <option value="" disabled>{t.companyPlaceholder}</option>
+                  <option value="PlataformaPark">PlataformaPark</option>
+                  <option value="MercadoLibre">MercadoLibre</option>
+                  <option value="Italika">Italika</option>
+                  <option value="RealTruck">RealTruck</option>
+                  <option value="Foxxcon">Foxxcon</option>
+                  <option value="otro">Otro / Other</option>
+                </select>
+              </div>
+
+              {formData.empresa === 'otro' && (
+                <div className="form-group">
+                  <label>{t.otherCompanyLabel}</label>
+                  <input type="text" name="empresaOtro" className="form-control" placeholder={t.otherCompanyPlaceholder} value={formData.empresaOtro} onChange={handleInputChange} required />
+                </div>
+              )}
+
+              <button type="submit" className="submit-btn" disabled={loading}>
+                {loading ? (lang === 'ES' ? 'Conectando...' : 'Connecting...') : t.button}
+              </button>
+            </form>
+
+            <div className="terms">
+              {t.termsPre}
+              <a href="#" onClick={(e) => { e.preventDefault(); setIsTermsOpen(true); }}>
+                {t.termsLink}
+              </a>
+              {t.termsPost}
             </div>
-          )}
-
-          <button type="submit" className="submit-btn" disabled={loading}>
-            {loading ? (lang === 'ES' ? 'Conectando...' : 'Connecting...') : t.button}
-          </button>
-        </form>
-
-        <div className="terms">
-          {t.termsPre}
-          <a href="#" onClick={(e) => { e.preventDefault(); setIsTermsOpen(true); }}>
-            {t.termsLink}
-          </a>
-          {t.termsPost}
-        </div>
+          </>
+        )}
 
       </div>
 
