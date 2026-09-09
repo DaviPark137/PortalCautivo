@@ -72,7 +72,6 @@ function App() {
   const [userContinueUrl, setUserContinueUrl] = useState('');
   const [isUniFi, setIsUniFi] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
   
   const [isTermsOpen, setIsTermsOpen] = useState(false);
 
@@ -89,8 +88,11 @@ function App() {
     // Cisco Meraki usa 'base_grant_url'
     setBaseGrantUrl(urlParams.get('base_grant_url') || '');
 
-    // Meraki usa 'user_continue_url', UniFi usa 'url'
-    const continueUrl = urlParams.get('user_continue_url') || urlParams.get('url') || 'https://google.com';
+    // Meraki usa 'user_continue_url', UniFi usa 'url' (la URL configurada en UniFi)
+    let continueUrl = urlParams.get('url') || urlParams.get('user_continue_url') || 'https://plataformapark.com';
+    if (continueUrl && !continueUrl.startsWith('http://') && !continueUrl.startsWith('https://')) {
+      continueUrl = 'https://' + continueUrl;
+    }
     setUserContinueUrl(continueUrl);
 
     // Detectar si la petición viene de una antena UniFi
@@ -126,10 +128,8 @@ function App() {
           // Autorización para Cisco Meraki
           window.location.href = `${baseGrantUrl}?continue_url=${encodeURIComponent(userContinueUrl)}`;
         } else {
-          // Autorización para Ubiquiti UniFi: la orden ya la mandó el backend
-          // Sin alertas feas ni redirecciones externas molestas
-          setIsSuccess(true);
-          setLoading(false);
+          // Autorización para Ubiquiti UniFi: Redirigir de inmediato a la página configurada desde UniFi
+          window.location.href = userContinueUrl;
         }
       }
     } catch (error) {
@@ -158,22 +158,10 @@ function App() {
           </div>
         </div>
 
-        {isSuccess ? (
-          <div style={{ textAlign: 'center', padding: '25px 10px' }}>
-            <div style={{ fontSize: '48px', color: '#10b981', marginBottom: '12px' }}>✓</div>
-            <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1f2937', marginBottom: '8px' }}>
-              {lang === 'ES' ? '¡Conectado!' : 'Connected!'}
-            </h2>
-            <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, lineHeight: '1.5' }}>
-              {lang === 'ES' ? 'Ya tienes acceso a internet. Puedes cerrar esta ventana.' : 'You now have internet access. You may close this window.'}
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="titles">
-              <h1>{t.title}</h1>
-              <p>{t.subtitle}</p>
-            </div>
+        <div className="titles">
+          <h1>{t.title}</h1>
+          <p>{t.subtitle}</p>
+        </div>
 
             <form onSubmit={handleConnect}>
               <div className="form-group">
@@ -236,8 +224,6 @@ function App() {
               </a>
               {t.termsPost}
             </div>
-          </>
-        )}
 
       </div>
 

@@ -20,6 +20,8 @@ services:
       - "8000:8000"
     depends_on:
       - db
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
@@ -28,6 +30,7 @@ services:
       - DB_PORT=5432
       - UNIFI_USER=${UNIFI_USER:-portal_admin}
       - UNIFI_PASSWORD=${UNIFI_PASSWORD:-}
+      - UNIFI_HOST=${UNIFI_HOST:-https://host.docker.internal:8443}
 
   frontend:
     build: ./frontend
