@@ -44,12 +44,13 @@ def unifi_authorize_guest(mac_address, ap_mac=None):
         print(f"[UniFi] MAC '{mac_address}' inválida o genérica. No se puede autorizar en UniFi.")
         return False
 
-    unifi_user = os.environ.get('UNIFI_USER', 'portal_admin')
-    unifi_pass = os.environ.get('UNIFI_PASSWORD', '')
-    unifi_site = os.environ.get('UNIFI_SITE', 'default')
+    unifi_api_key = os.environ.get('UNIFI_API_KEY', '').strip()
+    unifi_user = os.environ.get('UNIFI_USER', 'portal_admin').strip()
+    unifi_pass = os.environ.get('UNIFI_PASSWORD', '').strip()
+    unifi_site = os.environ.get('UNIFI_SITE', 'default').strip()
 
-    if not unifi_pass:
-        print("[UniFi Advertencia] UNIFI_PASSWORD no está configurado en .env del servidor.")
+    if not unifi_api_key and not unifi_pass:
+        print("[UniFi Advertencia] No se configuró UNIFI_PASSWORD ni UNIFI_API_KEY en .env del servidor.")
         return False
 
     # Lista de endpoints a intentar para conectar al UniFi Controller en el Host
@@ -81,20 +82,50 @@ def unifi_authorize_guest(mac_address, ap_mac=None):
     ctx.verify_mode = ssl.CERT_NONE
 
     for host in candidate_hosts:
+        # MÉTODO 1: Si hay API KEY configurada (UniFi Network 9 / 10)
+        if unifi_api_key:
+            try:
+                auth_url = f"{host}/api/s/{unifi_site}/cmd/stamgr"
+                auth_data = {
+                    "cmd": "authorize-guest",
+                    "mac": mac_clean,
+                    "minutes": 1440
+                }
+                if ap_mac and ap_mac not in ('', 'undefined', 'null'):
+                    auth_data["ap_mac"] = ap_mac.strip().lower().replace('-', ':')
+
+                auth_payload = json.dumps(auth_data).encode('utf-8')
+                auth_headers = {
+                    'Content-Type': 'application/json',
+                    'X-API-KEY': unifi_api_key,
+                    'User-Agent': 'PortalCautivoBackend'
+                }
+                req_auth = urllib.request.Request(auth_url, data=auth_payload, headers=auth_headers)
+                with urllib.request.urlopen(req_auth, context=ctx, timeout=5) as resp_auth:
+                    body_resp = resp_auth.read().decode('utf-8')
+                    print(f"[UniFi Éxito API-KEY] MAC {mac_clean} autorizada en {host}. Respuesta: {body_resp}")
+                    return True
+            except Exception as e:
+                print(f"[UniFi API-KEY Error] en {host}: {e}")
+
+        # MÉTODO 2: Autenticación por Usuario y Contraseña
         cj = CookieJar()
         opener = urllib.request.build_opener(
             urllib.request.HTTPCookieProcessor(cj),
             urllib.request.HTTPSHandler(context=ctx)
         )
 
-        # 1. Login en UniFi Controller (probar /api/login y /api/auth/login)
         login_success = False
         csrf_token = None
 
         for login_path in ['/api/login', '/api/auth/login']:
             try:
                 login_url = f"{host}{login_path}"
-                login_payload = json.dumps({"username": unifi_user, "password": unifi_pass}).encode('utf-8')
+                login_payload = json.dumps({
+                    "username": unifi_user,
+                    "password": unifi_pass,
+                    "remember": True
+                }).encode('utf-8')
                 req_login = urllib.request.Request(
                     login_url,
                     data=login_payload,

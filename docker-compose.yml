@@ -30,6 +30,7 @@ services:
       - DB_PORT=5432
       - UNIFI_USER=${UNIFI_USER:-portal_admin}
       - UNIFI_PASSWORD=${UNIFI_PASSWORD:-}
+      - UNIFI_API_KEY=${UNIFI_API_KEY:-}
       - UNIFI_HOST=${UNIFI_HOST:-https://host.docker.internal:8443}
 
   frontend:
