@@ -48,6 +48,10 @@ def unifi_authorize_guest(mac_address, ap_mac=None):
     unifi_user = os.environ.get('UNIFI_USER', 'portal_admin').strip()
     unifi_pass = os.environ.get('UNIFI_PASSWORD', '').strip()
     unifi_site = os.environ.get('UNIFI_SITE', 'default').strip()
+    try:
+        unifi_minutes = int(os.environ.get('UNIFI_DURATION_MINUTES', 1))
+    except ValueError:
+        unifi_minutes = 1
 
     if not unifi_api_key and not unifi_pass:
         print("[UniFi Advertencia] No se configuró UNIFI_PASSWORD ni UNIFI_API_KEY en .env del servidor.", flush=True)
@@ -75,7 +79,7 @@ def unifi_authorize_guest(mac_address, ap_mac=None):
         if fb not in candidate_hosts:
             candidate_hosts.append(fb)
 
-    print(f"[UniFi] Intentando autorizar MAC: {mac_clean} (AP: {ap_mac}) usando usuario: '{unifi_user}'...", flush=True)
+    print(f"[UniFi] Intentando autorizar MAC: {mac_clean} (AP: {ap_mac}) por {unifi_minutes} minuto(s) usando usuario: '{unifi_user}'...", flush=True)
 
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
@@ -89,7 +93,7 @@ def unifi_authorize_guest(mac_address, ap_mac=None):
                 auth_data = {
                     "cmd": "authorize-guest",
                     "mac": mac_clean,
-                    "minutes": 1440
+                    "minutes": unifi_minutes
                 }
                 if ap_mac and ap_mac not in ('', 'undefined', 'null'):
                     auth_data["ap_mac"] = ap_mac.strip().lower().replace('-', ':')
@@ -169,7 +173,7 @@ def unifi_authorize_guest(mac_address, ap_mac=None):
             auth_data = {
                 "cmd": "authorize-guest",
                 "mac": mac_clean,
-                "minutes": 1440
+                "minutes": unifi_minutes
             }
             if ap_mac and ap_mac not in ('', 'undefined', 'null'):
                 auth_data["ap_mac"] = ap_mac.strip().lower().replace('-', ':')

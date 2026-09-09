@@ -32,6 +32,7 @@ services:
       - UNIFI_USER=${UNIFI_USER:-portal_admin}
       - UNIFI_PASSWORD=${UNIFI_PASSWORD:-}
       - UNIFI_API_KEY=${UNIFI_API_KEY:-}
+      - UNIFI_DURATION_MINUTES=${UNIFI_DURATION_MINUTES:-1}
       - UNIFI_HOST=${UNIFI_HOST:-https://host.docker.internal:8443}
 
   frontend:
