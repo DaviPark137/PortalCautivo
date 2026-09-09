@@ -22,6 +22,7 @@ services:
       - db
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    environment:
       - PYTHONUNBUFFERED=1
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
