@@ -135,17 +135,11 @@ function App() {
       }, { timeout: 10000 });
 
       if (response.status === 201) {
-        if (response.data?.unifi_authorized === false) {
-          setLoading(false);
-          alert("Aviso: El registro se guardó en la base de datos, pero el controlador UniFi no autorizó la MAC del dispositivo. Por favor verifica las credenciales de UniFi o los logs del contenedor backend.");
-          return;
-        }
-
         if (baseGrantUrl) {
           // Autorización para Cisco Meraki
           window.location.href = `${baseGrantUrl}?continue_url=${encodeURIComponent(userContinueUrl)}`;
         } else {
-          // Autorización para Ubiquiti UniFi: Redirigir de inmediato a la página configurada
+          // Redirigir de inmediato a la página configurada sin alertas
           window.location.href = userContinueUrl;
         }
       }
