@@ -10,5 +10,8 @@ export default defineConfig({
     },
     host: true,
     allowedHosts: ['wifi.plataformapark.com'],
+    hmr: {
+      overlay: false,
+    },
   },
 })
