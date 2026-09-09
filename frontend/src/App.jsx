@@ -68,6 +68,7 @@ const content = {
 function App() {
   const [lang, setLang] = useState('ES');
   const [clientMac, setClientMac] = useState('');
+  const [apMac, setApMac] = useState('');
   const [baseGrantUrl, setBaseGrantUrl] = useState('');
   const [userContinueUrl, setUserContinueUrl] = useState('');
   const [isUniFi, setIsUniFi] = useState(false);
@@ -85,12 +86,21 @@ function App() {
     const mac = urlParams.get('client_mac') || urlParams.get('id') || '';
     setClientMac(mac);
 
+    const ap = urlParams.get('ap') || '';
+    setApMac(ap);
+
     // Cisco Meraki usa 'base_grant_url'
     setBaseGrantUrl(urlParams.get('base_grant_url') || '');
 
-    // Meraki usa 'user_continue_url', UniFi usa 'url' (la URL configurada en UniFi)
-    let continueUrl = urlParams.get('url') || urlParams.get('user_continue_url') || 'https://plataformapark.com';
-    if (continueUrl && !continueUrl.startsWith('http://') && !continueUrl.startsWith('https://')) {
+    // Meraki usa 'user_continue_url', UniFi usa 'url'
+    const rawUrl = urlParams.get('url') || urlParams.get('user_continue_url') || '';
+    
+    // Si la URL es una prueba interna del sistema operativo (Google 204, Apple CNA, Windows ConnectTest),
+    // o está vacía, no redirigir a eso porque causa que la pantalla se quede en blanco o recargue el portal.
+    const isCaptiveProbe = /generate_204|connectivitycheck|captive\.apple\.com|hotspot-detect|msftconnecttest/i.test(rawUrl);
+    
+    let continueUrl = (!rawUrl || isCaptiveProbe) ? 'https://plataformapark.com' : rawUrl;
+    if (!continueUrl.startsWith('http://') && !continueUrl.startsWith('https://')) {
       continueUrl = 'https://' + continueUrl;
     }
     setUserContinueUrl(continueUrl);
@@ -120,15 +130,22 @@ function App() {
         email: formData.email,
         motivo: finalMotivo,
         empresa: finalEmpresa,
-        clientMac: clientMac || '00:00:00:00:00:00'
+        clientMac: clientMac || '00:00:00:00:00:00',
+        apMac: apMac || ''
       }, { timeout: 10000 });
 
       if (response.status === 201) {
+        if (response.data?.unifi_authorized === false) {
+          setLoading(false);
+          alert("Aviso: El registro se guardó en la base de datos, pero el controlador UniFi no autorizó la MAC del dispositivo. Por favor verifica las credenciales de UniFi o los logs del contenedor backend.");
+          return;
+        }
+
         if (baseGrantUrl) {
           // Autorización para Cisco Meraki
           window.location.href = `${baseGrantUrl}?continue_url=${encodeURIComponent(userContinueUrl)}`;
         } else {
-          // Autorización para Ubiquiti UniFi: Redirigir de inmediato a la página configurada desde UniFi
+          // Autorización para Ubiquiti UniFi: Redirigir de inmediato a la página configurada
           window.location.href = userContinueUrl;
         }
       }

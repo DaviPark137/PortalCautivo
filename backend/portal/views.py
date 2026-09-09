@@ -26,7 +26,7 @@ def get_docker_gateway():
         pass
     return None
 
-def unifi_authorize_guest(mac_address):
+def unifi_authorize_guest(mac_address, ap_mac=None):
     """
     Ordena al UniFi Controller en el servidor Lightsail que autorice el acceso a internet para la MAC del visitante.
     """
@@ -49,7 +49,7 @@ def unifi_authorize_guest(mac_address):
     unifi_site = os.environ.get('UNIFI_SITE', 'default')
 
     if not unifi_pass:
-        print("[UniFi] Advertencia: UNIFI_PASSWORD no está configurado en las variables de entorno.")
+        print("[UniFi Advertencia] UNIFI_PASSWORD no está configurado en .env del servidor.")
         return False
 
     # Lista de endpoints a intentar para conectar al UniFi Controller en el Host
@@ -74,52 +74,76 @@ def unifi_authorize_guest(mac_address):
         if fb not in candidate_hosts:
             candidate_hosts.append(fb)
 
-    print(f"[UniFi] Intentando autorizar MAC: {mac_clean} en UniFi...")
+    print(f"[UniFi] Intentando autorizar MAC: {mac_clean} (AP: {ap_mac}) en UniFi...")
 
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
 
     for host in candidate_hosts:
-        try:
-            cj = CookieJar()
-            opener = urllib.request.build_opener(
-                urllib.request.HTTPCookieProcessor(cj),
-                urllib.request.HTTPSHandler(context=ctx)
-            )
+        cj = CookieJar()
+        opener = urllib.request.build_opener(
+            urllib.request.HTTPCookieProcessor(cj),
+            urllib.request.HTTPSHandler(context=ctx)
+        )
 
-            # 1. Login en UniFi Controller
-            login_url = f"{host}/api/login"
-            login_payload = json.dumps({"username": unifi_user, "password": unifi_pass}).encode('utf-8')
-            req_login = urllib.request.Request(
-                login_url,
-                data=login_payload,
-                headers={'Content-Type': 'application/json', 'User-Agent': 'PortalCautivoBackend'}
-            )
+        # 1. Login en UniFi Controller (probar /api/login y /api/auth/login)
+        login_success = False
+        csrf_token = None
 
-            with opener.open(req_login, timeout=4) as resp_login:
-                if resp_login.status != 200:
-                    continue
-
-                # Extraer token CSRF si UniFi lo requiere
-                csrf_token = (
-                    resp_login.headers.get('X-CSRF-Token') or 
-                    resp_login.headers.get('x-csrf-token') or 
-                    resp_login.headers.get('csrf_token')
+        for login_path in ['/api/login', '/api/auth/login']:
+            try:
+                login_url = f"{host}{login_path}"
+                login_payload = json.dumps({"username": unifi_user, "password": unifi_pass}).encode('utf-8')
+                req_login = urllib.request.Request(
+                    login_url,
+                    data=login_payload,
+                    headers={'Content-Type': 'application/json', 'User-Agent': 'PortalCautivoBackend'}
                 )
-                if not csrf_token:
-                    for cookie in cj:
-                        if 'csrf' in cookie.name.lower():
-                            csrf_token = cookie.value
-                            break
 
-            # 2. Enviar comando authorize-guest (24 horas = 1440 minutos)
+                with opener.open(req_login, timeout=4) as resp_login:
+                    if resp_login.status == 200:
+                        login_success = True
+                        csrf_token = (
+                            resp_login.headers.get('X-CSRF-Token') or 
+                            resp_login.headers.get('x-csrf-token') or 
+                            resp_login.headers.get('csrf_token')
+                        )
+                        if not csrf_token:
+                            for cookie in cj:
+                                if 'csrf' in cookie.name.lower():
+                                    csrf_token = cookie.value
+                                    break
+                        print(f"[UniFi] Login exitoso en {host}{login_path}. CSRF: {'Sí' if csrf_token else 'No'}")
+                        break
+            except urllib.error.HTTPError as e:
+                if e.code == 404:
+                    continue # Probar el siguiente path de login
+                try:
+                    err_detail = e.read().decode('utf-8')
+                except Exception:
+                    err_detail = ""
+                print(f"[UniFi Error Login HTTP {e.code}] en {host}{login_path}: {err_detail}")
+                break
+            except Exception as e:
+                # No se pudo conectar a este host
+                break
+
+        if not login_success:
+            continue
+
+        # 2. Enviar comando authorize-guest (24 horas = 1440 minutos)
+        try:
             auth_url = f"{host}/api/s/{unifi_site}/cmd/stamgr"
-            auth_payload = json.dumps({
+            auth_data = {
                 "cmd": "authorize-guest",
                 "mac": mac_clean,
                 "minutes": 1440
-            }).encode('utf-8')
+            }
+            if ap_mac and ap_mac not in ('', 'undefined', 'null'):
+                auth_data["ap_mac"] = ap_mac.strip().lower().replace('-', ':')
+
+            auth_payload = json.dumps(auth_data).encode('utf-8')
 
             auth_headers = {
                 'Content-Type': 'application/json',
@@ -135,8 +159,15 @@ def unifi_authorize_guest(mac_address):
                 print(f"[UniFi Exito] MAC {mac_clean} autorizada en {host}. Respuesta: {body_resp}")
                 return True
 
+        except urllib.error.HTTPError as e:
+            try:
+                err_detail = e.read().decode('utf-8')
+            except Exception:
+                err_detail = ""
+            print(f"[UniFi Error Auth HTTP {e.code}] en {auth_url}: {err_detail}")
+            continue
         except Exception as e:
-            print(f"[UniFi] No se pudo conectar a {host}: {e}")
+            print(f"[UniFi Error Auth] en {host}: {e}")
             continue
 
     print(f"[UniFi Error] No fue posible autorizar la MAC {mac_clean} en ningún host de UniFi.")
@@ -155,7 +186,8 @@ def registrar_visitante(request):
         
         # Intentar autorizar en UniFi automáticamente si recibimos MAC
         client_mac = request.data.get('clientMac', '')
-        unifi_ok = unifi_authorize_guest(client_mac)
+        ap_mac = request.data.get('apMac', None)
+        unifi_ok = unifi_authorize_guest(client_mac, ap_mac=ap_mac)
         
         return Response(
             {
