@@ -26,6 +26,8 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_HOST=db
       - DB_PORT=5432
+      - UNIFI_USER=${UNIFI_USER:-portal_admin}
+      - UNIFI_PASSWORD=${UNIFI_PASSWORD:-}
 
   frontend:
     build: ./frontend

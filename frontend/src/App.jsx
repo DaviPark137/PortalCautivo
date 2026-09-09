@@ -71,7 +71,6 @@ function App() {
   const [baseGrantUrl, setBaseGrantUrl] = useState('');
   const [userContinueUrl, setUserContinueUrl] = useState('');
   const [isUniFi, setIsUniFi] = useState(false);
-  const [controllerIp, setControllerIp] = useState('192.168.24.84');
   const [loading, setLoading] = useState(false);
   
   const [isTermsOpen, setIsTermsOpen] = useState(false);
@@ -96,9 +95,6 @@ function App() {
     // Detectar si la petición viene de una antena UniFi
     if (urlParams.get('id') && !urlParams.get('base_grant_url')) {
       setIsUniFi(true);
-      if (urlParams.get('controller')) {
-        setControllerIp(urlParams.get('controller'));
-      }
     }
   }, []);
 
@@ -128,30 +124,11 @@ function App() {
         if (baseGrantUrl) {
           // Autorización para Cisco Meraki
           window.location.href = `${baseGrantUrl}?continue_url=${encodeURIComponent(userContinueUrl)}`;
-        } else if (isUniFi && clientMac) {
-          // Autorización para Ubiquiti UniFi (envío de POST al controller)
-          const form = document.createElement('form');
-          form.method = 'POST';
-          form.action = `http://${controllerIp}:8880/guest/s/default/login`;
-
-          const idInput = document.createElement('input');
-          idInput.type = 'hidden';
-          idInput.name = 'id';
-          idInput.value = clientMac;
-          form.appendChild(idInput);
-
-          const urlInput = document.createElement('input');
-          urlInput.type = 'hidden';
-          urlInput.name = 'url';
-          urlInput.value = userContinueUrl;
-          form.appendChild(urlInput);
-
-          document.body.appendChild(form);
-          form.submit();
         } else {
-          console.log("Guardado en PostgreSQL:", response.data);
-          alert("¡Registro guardado en BD! Simulación de internet liberado (Modo Local).");
-          setLoading(false);
+          // Autorización para Ubiquiti UniFi / Servidor Cloud:
+          // El backend ya liberó la MAC directamente con el controlador local en Lightsail
+          alert(lang === 'ES' ? "¡Conexión exitosa! Ya tienes acceso a internet." : "Connection successful! You now have internet access.");
+          window.location.href = userContinueUrl || 'https://google.com';
         }
       }
     } catch (error) {
