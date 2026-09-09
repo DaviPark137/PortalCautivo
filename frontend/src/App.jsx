@@ -72,6 +72,7 @@ function App() {
   const [userContinueUrl, setUserContinueUrl] = useState('');
   const [isUniFi, setIsUniFi] = useState(false);
   const [controllerIp, setControllerIp] = useState('192.168.24.84');
+  const [loading, setLoading] = useState(false);
   
   const [isTermsOpen, setIsTermsOpen] = useState(false);
 
@@ -107,19 +108,21 @@ function App() {
 
   const handleConnect = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
     const finalMotivo = formData.motivo === 'otro' ? formData.motivoOtro : formData.motivo;
     const finalEmpresa = formData.empresa === 'otro' ? formData.empresaOtro : formData.empresa;
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      // Usar URL relativa por defecto para que Nginx siempre lo mande al backend seguro
+      const apiUrl = import.meta.env.VITE_API_URL || '';
       const response = await axios.post(`${apiUrl}/api/registro/`, {
         nombre: formData.nombre,
         email: formData.email,
         motivo: finalMotivo,
         empresa: finalEmpresa,
-        clientMac: clientMac
-      });
+        clientMac: clientMac || '00:00:00:00:00:00'
+      }, { timeout: 10000 });
 
       if (response.status === 201) {
         if (baseGrantUrl) {
@@ -148,11 +151,13 @@ function App() {
         } else {
           console.log("Guardado en PostgreSQL:", response.data);
           alert("¡Registro guardado en BD! Simulación de internet liberado (Modo Local).");
+          setLoading(false);
         }
       }
     } catch (error) {
+      setLoading(false);
       console.error("Error conectando con la base de datos:", error);
-      alert("Hubo un error de comunicación con el servidor. Por favor, intenta de nuevo.");
+      alert("Error al registrarse: " + (error.response?.data?.detail || error.message || "Problema de conexión con el servidor"));
     }
   };
 
@@ -229,7 +234,9 @@ function App() {
             </div>
           )}
 
-          <button type="submit" className="submit-btn">{t.button}</button>
+          <button type="submit" className="submit-btn" disabled={loading}>
+            {loading ? (lang === 'ES' ? 'Conectando...' : 'Connecting...') : t.button}
+          </button>
         </form>
 
         <div className="terms">
