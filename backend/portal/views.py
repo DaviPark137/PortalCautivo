@@ -31,7 +31,7 @@ def unifi_authorize_guest(mac_address, ap_mac=None):
     Ordena al UniFi Controller en el servidor Lightsail que autorice el acceso a internet para la MAC del visitante.
     """
     if not mac_address:
-        print("[UniFi] MAC no proporcionada. No se puede autorizar.")
+        print("[UniFi] MAC no proporcionada. No se puede autorizar.", flush=True)
         return False
 
     # Limpiar y normalizar formato de MAC (aa:bb:cc:dd:ee:ff)
@@ -41,7 +41,7 @@ def unifi_authorize_guest(mac_address, ap_mac=None):
 
     # Validar formato MAC
     if not re.match(r'^([0-9a-f]{2}[:]){5}([0-9a-f]{2})$', mac_clean) or mac_clean == '00:00:00:00:00:00':
-        print(f"[UniFi] MAC '{mac_address}' inválida o genérica. No se puede autorizar en UniFi.")
+        print(f"[UniFi] MAC '{mac_address}' inválida o genérica. No se puede autorizar en UniFi.", flush=True)
         return False
 
     unifi_api_key = os.environ.get('UNIFI_API_KEY', '').strip()
@@ -50,7 +50,7 @@ def unifi_authorize_guest(mac_address, ap_mac=None):
     unifi_site = os.environ.get('UNIFI_SITE', 'default').strip()
 
     if not unifi_api_key and not unifi_pass:
-        print("[UniFi Advertencia] No se configuró UNIFI_PASSWORD ni UNIFI_API_KEY en .env del servidor.")
+        print("[UniFi Advertencia] No se configuró UNIFI_PASSWORD ni UNIFI_API_KEY en .env del servidor.", flush=True)
         return False
 
     # Lista de endpoints a intentar para conectar al UniFi Controller en el Host
@@ -75,7 +75,7 @@ def unifi_authorize_guest(mac_address, ap_mac=None):
         if fb not in candidate_hosts:
             candidate_hosts.append(fb)
 
-    print(f"[UniFi] Intentando autorizar MAC: {mac_clean} (AP: {ap_mac}) en UniFi...")
+    print(f"[UniFi] Intentando autorizar MAC: {mac_clean} (AP: {ap_mac}) usando usuario: '{unifi_user}'...", flush=True)
 
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
@@ -103,10 +103,10 @@ def unifi_authorize_guest(mac_address, ap_mac=None):
                 req_auth = urllib.request.Request(auth_url, data=auth_payload, headers=auth_headers)
                 with urllib.request.urlopen(req_auth, context=ctx, timeout=5) as resp_auth:
                     body_resp = resp_auth.read().decode('utf-8')
-                    print(f"[UniFi Éxito API-KEY] MAC {mac_clean} autorizada en {host}. Respuesta: {body_resp}")
+                    print(f"[UniFi Éxito API-KEY] MAC {mac_clean} autorizada en {host}. Respuesta: {body_resp}", flush=True)
                     return True
             except Exception as e:
-                print(f"[UniFi API-KEY Error] en {host}: {e}")
+                print(f"[UniFi API-KEY Error] en {host}: {e}", flush=True)
 
         # MÉTODO 2: Autenticación por Usuario y Contraseña
         cj = CookieJar()
@@ -145,7 +145,7 @@ def unifi_authorize_guest(mac_address, ap_mac=None):
                                 if 'csrf' in cookie.name.lower():
                                     csrf_token = cookie.value
                                     break
-                        print(f"[UniFi] Login exitoso en {host}{login_path}. CSRF: {'Sí' if csrf_token else 'No'}")
+                        print(f"[UniFi] Login exitoso en {host}{login_path}. CSRF: {'Sí' if csrf_token else 'No'}", flush=True)
                         break
             except urllib.error.HTTPError as e:
                 if e.code == 404:
@@ -154,7 +154,7 @@ def unifi_authorize_guest(mac_address, ap_mac=None):
                     err_detail = e.read().decode('utf-8')
                 except Exception:
                     err_detail = ""
-                print(f"[UniFi Error Login HTTP {e.code}] en {host}{login_path}: {err_detail}")
+                print(f"[UniFi Error Login HTTP {e.code}] en {host}{login_path}: {err_detail}", flush=True)
                 break
             except Exception as e:
                 # No se pudo conectar a este host
@@ -187,7 +187,7 @@ def unifi_authorize_guest(mac_address, ap_mac=None):
 
             with opener.open(req_auth, timeout=5) as resp_auth:
                 body_resp = resp_auth.read().decode('utf-8')
-                print(f"[UniFi Exito] MAC {mac_clean} autorizada en {host}. Respuesta: {body_resp}")
+                print(f"[UniFi Exito] MAC {mac_clean} autorizada en {host}. Respuesta: {body_resp}", flush=True)
                 return True
 
         except urllib.error.HTTPError as e:
@@ -195,13 +195,13 @@ def unifi_authorize_guest(mac_address, ap_mac=None):
                 err_detail = e.read().decode('utf-8')
             except Exception:
                 err_detail = ""
-            print(f"[UniFi Error Auth HTTP {e.code}] en {auth_url}: {err_detail}")
+            print(f"[UniFi Error Auth HTTP {e.code}] en {auth_url}: {err_detail}", flush=True)
             continue
         except Exception as e:
-            print(f"[UniFi Error Auth] en {host}: {e}")
+            print(f"[UniFi Error Auth] en {host}: {e}", flush=True)
             continue
 
-    print(f"[UniFi Error] No fue posible autorizar la MAC {mac_clean} en ningún host de UniFi.")
+    print(f"[UniFi Error] No fue posible autorizar la MAC {mac_clean} en ningún host de UniFi.", flush=True)
     return False
 
 @api_view(['POST'])
@@ -210,6 +210,7 @@ def registrar_visitante(request):
     Recibe los datos de React y crea un nuevo visitante en la base de datos
     utilizando un Serializer para validación segura.
     """
+    print(f"[Backend Registro] Datos recibidos: {request.data}", flush=True)
     serializer = VisitanteSerializer(data=request.data)
     
     if serializer.is_valid():
